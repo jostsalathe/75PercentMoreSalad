@@ -6,6 +6,7 @@ tWall = 2;
 xySwitchCutout = 14;
 
 switchPitch = 19.05;
+xStabi2U = 23.876;
 
 // Array of rows with row = [[xOffset, yOffset], [sw0, sw1, ..., swN]] where
 //  swI can be 0 (no switch), 1 (1U), 2 (2U horizontal) or 3 (2U vertical)
@@ -42,9 +43,9 @@ module switch2U()
   translate([switchPitch/2, 0, zPlate/2])
   {
     cube([xySwitchCutout, xySwitchCutout, zPlate+0.2], center=true);
-    translate([-2*switchPitch/3, 0, 0])
+    translate([-xStabi2U/2, 0, 0])
     cylinder(h=zPlate+0.2, d=6, center=true);
-    translate([2*switchPitch/3, 0, 0])
+    translate([xStabi2U/2, 0, 0])
     cylinder(h=zPlate+0.2, d=6, center=true);
   }
 }
