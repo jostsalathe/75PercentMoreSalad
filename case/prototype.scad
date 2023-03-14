@@ -15,7 +15,7 @@ ySwitchClipSlotDist = 6.5;
 
 xStabiDist2U = 23.876;
 xStabiPlate = 6.7;
-yStabiPlate = 8.3;
+yStabiPlate = 8.3 + 3.4*2;
 
 // Array of rows with row = [[xOffset, yOffset], [sw0, sw1, ..., swN]] where
 //  swI can be 0 (no switch), 1 (1U), 2 (2U horizontal) or 3 (2U vertical)
@@ -60,10 +60,11 @@ module switch2U()
     switch1U();
     translate([0, 0, zPlate/2])
     {
-      translate([-xStabiDist2U/2, 0, 0])
-      cube([xStabiPlate, yStabiPlate, zPlate+0.2], center=true);
-      translate([xStabiDist2U/2, 0, 0])
-      cube([xStabiPlate, yStabiPlate, zPlate+0.2], center=true);
+      for(xPos = [-1, 1])
+      translate([xPos * xStabiDist2U/2, 0, 0])
+      {
+        cube([xStabiPlate, yStabiPlate, zPlate+0.2], center=true);
+      }
     }
   }
 }
@@ -88,20 +89,15 @@ module pcbSwitch1U()
 
 module pcbStabi()
 {
-  xMain = xStabiPlate;
+  xMain = 8.1;
   yMain = 12.4;
   yMainOffset = -0.7;
-
-  xGuide = 8.1;
-  yGuide = 2.3;
-  yGuideOffset = yGuide/2-0.2;
 
   xWire = 3;
   yWire = 1.2;
   yWireOffset = -yMain/2+yMainOffset-yWire/2;
 
   translate([0, yMainOffset, 0]) cube([xMain, yMain, zPcb+0.2], center=true);
-  translate([0, yGuideOffset, 0]) cube([xGuide, yGuide, zPcb+0.2], center=true);
   translate([0, yWireOffset+0.1, 0]) cube([xWire, yWire+0.1, zPcb+0.2], center=true);
 }
 
@@ -172,20 +168,28 @@ module pcb(layout)
   yPcb = len(layout) * switchPitch;
   difference()
   {
+    // outer contours
     translate([0, -yPcb - 4*tWall, 0])
-    cube([xPcb + 4*tWall, yPcb + 4*tWall, zPcb + zPcbToPlate + zPlate]);
+    cube([xPcb + 4*tWall, yPcb + 4*tWall, zPcb + zPcbToPlate + zPlateRim]);
+    // cutout plate
     translate([tWall, -yPcb - 3*tWall, zPcb + zPcbToPlate])
     cube([xPcb + 2*tWall, yPcb + 2*tWall, zPlate + zPlateRim + 0.1]);
+    // cutout parts on pcb top side
     translate([2*tWall, -yPcb - 2*tWall, zPcb])
     cube([xPcb, yPcb, zPcbToPlate + 0.1]);
+    // pcb cutouts
     translate([switchPitch/2 + 2*tWall, -switchPitch/2 - 2*tWall, 0])
     switches(layout, true);
+    // wall cutouts
+    for(xPos = [2*tWall + xPcb, -0.1])
+    translate([xPos, -2*tWall - yPcb/2 - switchPitch/2, -0.1])
+    cube([2*tWall + 0.1, switchPitch, zPcb + zPcbToPlate + zPlateRim + 0.2]);
   }
 }
 
 pcb(layoutTest);
 translate([tWall, -tWall, zPcb + zPcbToPlate])
-%plate(layoutTest);
+*plate(layoutTest);
 
 
 
