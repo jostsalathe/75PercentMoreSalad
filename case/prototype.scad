@@ -1,21 +1,27 @@
-zPlateRim = 3.5;
-zPlate = 1.2;
-zPcbToPlate = 1.3;
+$fn=$preview?12:64;
+
+zCase = 1.6;
+zCaseToPcb = 3;
 
 zPcb = 1.6;
+zPcbToPlate = 1.3;
+
+zPlate = 1.2;
+zPlateRim = 3.5;
+
 
 tWall = 2;
 xySwitchCutout = 14;
 
 switchPitch = 19.05;
 switchStemHole = 3.5;
-xSwitchClipSlot = 5;
-ySwitchClipSlot = 2;
+xSwitchClipSlot = 5.4;
+ySwitchClipSlot = 1.6;
 ySwitchClipSlotDist = 6.5;
 
 xStabiDist2U = 23.876;
 xStabiPlate = 6.7;
-yStabiPlate = 8.3 + 3.4*2;
+yStabiPlate = 16;
 
 // Array of rows with row = [[xOffset, yOffset], [sw0, sw1, ..., swN]] where
 //  swI can be 0 (no switch), 1 (1U), 2 (2U horizontal) or 3 (2U vertical)
@@ -71,7 +77,6 @@ module switch2U()
 
 module pcbSwitch1U()
 {
-  $fn=$preview?8:64;
   translate([0, 0, zPcb/2])
   {
     cylinder(h=zPcb+0.2, d=switchStemHole, center=true);
@@ -89,7 +94,7 @@ module pcbSwitch1U()
 
 module pcbStabi()
 {
-  xMain = 8.1;
+  xMain = 8.3;
   yMain = 12.4;
   yMainOffset = -0.7;
 
@@ -153,8 +158,12 @@ module plate(layout)
   yPlate = len(layout) * switchPitch;
   difference()
   {
-    translate([0, -yPlate - 2*tWall, 0])
-    cube([xPlate + 2*tWall, yPlate + 2*tWall, zPlate + zPlateRim]);
+    translate([tWall, -yPlate - tWall, 0])
+    minkowski()
+    {
+      cube([xPlate, yPlate, zPlateRim]);
+      cylinder(h=zPlate, r=tWall);
+    }
     translate([tWall, -yPlate - tWall, zPlate])
     cube([xPlate, yPlate, zPlateRim + 0.1]);
     translate([switchPitch/2 + tWall, -switchPitch/2 - tWall, 0])
@@ -169,11 +178,19 @@ module pcb(layout)
   difference()
   {
     // outer contours
-    translate([0, -yPcb - 4*tWall, 0])
-    cube([xPcb + 4*tWall, yPcb + 4*tWall, zPcb + zPcbToPlate + zPlateRim]);
+    translate([2*tWall, -yPcb - 2*tWall, 0])
+    minkowski()
+    {
+      cube([xPcb, yPcb, zPcbToPlate + zPlateRim]);
+      cylinder(h = zPcb, r = 2*tWall);
+    }
     // cutout plate
-    translate([tWall, -yPcb - 3*tWall, zPcb + zPcbToPlate])
-    cube([xPcb + 2*tWall, yPcb + 2*tWall, zPlate + zPlateRim + 0.1]);
+    translate([2*tWall, -yPcb - 2*tWall, zPcb + zPcbToPlate])
+    minkowski()
+    {
+      cube([xPcb, yPcb, zPlateRim + 0.1]);
+      cylinder(h=zPlate, r=tWall);
+    }
     // cutout parts on pcb top side
     translate([2*tWall, -yPcb - 2*tWall, zPcb])
     cube([xPcb, yPcb, zPcbToPlate + 0.1]);
@@ -183,21 +200,55 @@ module pcb(layout)
     // wall cutouts
     for(xPos = [2*tWall + xPcb, -0.1])
     translate([xPos, -2*tWall - yPcb/2 - switchPitch/2, -0.1])
-    cube([2*tWall + 0.1, switchPitch, zPcb + zPcbToPlate + zPlateRim + 0.2]);
+    cube([2*tWall + 0.1, switchPitch, zPcb + 0.2]);
+    translate([-0.1, -2*tWall - yPcb/2 - switchPitch/2, zPcb])
+    cube([xPcb + 4*tWall + 0.2, switchPitch, zPcbToPlate + zPlateRim + 0.1]);
   }
 }
 
+module case(layout)
+{
+  xCase = len(layout[0]) * switchPitch;
+  yCase = len(layout) * switchPitch;
+  difference()
+  {
+    // outer contours
+    translate([3*tWall, -yCase - 3*tWall, 0])
+    minkowski()
+    {
+      cube([xCase, yCase, zCaseToPcb + zPlateRim]);
+      cylinder(h = zCase, r = 3*tWall);
+    }
+    // cutout pcb
+    translate([3*tWall, -yCase - 3*tWall, zCase + zCaseToPcb])
+    minkowski()
+    {
+      cube([xCase, yCase, zPcbToPlate + zPlateRim + 0.1]);
+      cylinder(h = zPcb, r = 2*tWall);
+    }
+    // cutout parts on pcb bottom side
+    translate([3*tWall, -yCase - 3*tWall, zCase])
+    minkowski()
+    {
+      cube([xCase, yCase, zCaseToPcb]);
+      cylinder(h = 0.1, r = tWall);
+    }
+    // wall cutouts
+    for(yPos = [-2*tWall, -yCase - 6*tWall - 0.1])
+    translate([3*tWall + xCase/2 - switchPitch/2, yPos, -0.1])
+    cube([switchPitch, 2*tWall + 0.1, zCase + 0.2]);
+    translate([3*tWall + xCase/2 - switchPitch/2, -yCase - 6*tWall - 0.1, zCase])
+    cube([switchPitch, yCase + 6*tWall + 0.2, zCaseToPcb + zPcb + zPcbToPlate + zPlateRim + 0.1]);
+  }
+}
+
+case(layoutTest);
+
+translate([tWall, -tWall, zCase + zCaseToPcb])
 pcb(layoutTest);
-translate([tWall, -tWall, zPcb + zPcbToPlate])
-*plate(layoutTest);
 
-
-
-
-
-
-
-
+translate([2*tWall, -2*tWall, zCase + zCaseToPcb + zPcb + zPcbToPlate])
+plate(layoutTest);
 
 
 
